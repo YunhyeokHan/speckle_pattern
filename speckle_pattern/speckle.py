@@ -317,6 +317,78 @@ def generate_checkerboard(height, width, dpi, path, line_width=1, N_rows=None):
     print(f'Image saved to {path}.')
     return im
     
+def add_displacement(img, dx, dy, path, dpi):
+    """
+    Generates a pattern image with prescribed displacement and saves it to specified 
+    path as JPEG or TIFF.
+
+    Parameters
+    ----------
+    img: (h, w), ndarray
+        input image (grayscale, [0, 1] or [0,255])
+    dx: int (currently int (to be developed into float (for subpixel displacement)))
+       prescribed displacement in horizontal axis in pixel.
+       
+    dy: int (currently int (to be developed into float (for subpixel displacement)))
+       prescribed displacement in vertical axis in pixel.
+    
+    path: str, None
+        output file name.
+
+    Returns
+    -------
+    image: (h, w), ndarray
+        resulting image (grayscale)
+    """
+    
+    h,w = img.shape
+    
+    image = np.zeros_like(img)
+
+    if dx >= 0  and dy >= 0:
+        # corner    
+        image[0:dy, 0:dx] = np.tile(img[0,0],(dy,dx))
+        # vertical side
+        image[dy:h, 0:dx] = np.tile(img[0:h-dy,0].reshape(-1,1),(1,dx))
+        # horizontal side
+        image[0:dy, dx:w] = np.tile(img[0,0:w-dx].reshape(1,-1),(dy,1))
+        # displaced pattern
+        image[dy:h, dx:w] = img[0:h-dy, 0:w-dx]
+    
+    elif dx < 0 and dy >= 0:
+        # corner    
+        image[0:dy, w+dx:w] = np.tile(img[0,-1],(dy,-dx))
+        # vertical side
+        image[dy:h, w+dx:w] = np.tile(img[0:h-dy,-1].reshape(-1,1),(1,-dx))
+        # horizontal side
+        image[0:dy, 0:w+dx] = np.tile(img[0,0-dx:w].reshape(1,-1),(dy,1))
+        # displaced pattern
+        image[dy:h, 0:w+dx] = img[0:h-dy, 0-dx:w]
+
+    elif dx >= 0 and dy < 0:
+        # corner    
+        image[h+dy:h, 0:dx] = np.tile(img[-1,0],(-dy,dx))
+        # vertical side
+        image[0:h+dy, 0:dx] = np.tile(img[0-dy:h,0].reshape(-1,1),(1,dx))
+        # horizontal side
+        image[h+dy:h, dx:w] = np.tile(img[-1,0:w-dx].reshape(1,-1),(-dy,1))
+        # displaced pattern
+        image[0:h+dy, dx:w] = img[0-dy:h, 0:w-dx]
+
+    elif dx < 0 and dy < 0:
+        # corner    
+        image[h+dy:h, w+dx:w] = np.tile(img[-1,-1],(-dy,-dx))
+        # vertical side
+        image[0:h+dy, w+dx:w] = np.tile(img[0-dy:h,-1].reshape(-1,1),(1,-dx))
+        # horizontal side
+        image[h+dy:h, 0:w+dx] = np.tile(img[-1,0-dx:w].reshape(1,-1),(-dy,1))
+        # displaced pattern
+        image[0:h+dy, 0:w+dx] = img[0-dy:h,0-dx:w]
+
+    image_comment = f'displacement in x : {dx} pixels \n displacement in y : {dy}\n DPI: {dpi}'
+    save_image(path, image, dpi, comment=image_comment)
+    
+    return image
 
 if __name__ == '__main__':
     slika = generate_and_save(70, 70, 200, 3., 'test.tiff', size_randomness=0.75, speckle_blur=1., grid_step=1.2)
